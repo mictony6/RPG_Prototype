@@ -128,9 +128,9 @@ class Player(Sprite):
         for enemy in enemy_list:
             if enemy.rect.colliderect(self.rect):
                 if self.direction.x > 0:  # Moving right; Hit the left side of the wall
-                    self.move(-4,0)
+                    self.move(-4, 0)
                 elif self.direction.x < 0:  # Moving left; Hit the right side of the wall
-                    self.move(4,0)
+                    self.move(4, 0)
                 if self.direction.y > 0:  # Moving down; Hit the top side of the wall
                     self.move_single_axis(0, -4)
                 elif self.direction.y < 0:  # Moving up; Hit the bottom side of the wall
@@ -146,14 +146,14 @@ class Player(Sprite):
                 elif self.actions["attacking"]:
                     enemy.combat(self)
                     self.attack_rate -= .75
-                    if self.attack_rate <= 0 :
+                    if self.attack_rate <= 0:
                         self.actions["idle"] = True
                         self.actions["attacking"] = False
                         self.attack_rate = 10
 
-    def push(self, directionx , directiony):
+    def push(self, directionx, directiony):
         if directionx == "left":
-            self.rect.centerx -= 40;
+            self.rect.centerx -= 40
         elif directionx == "right":
             self.rect.centerx += 40
         if directiony == "up":
@@ -195,7 +195,7 @@ class Player(Sprite):
             self.die()
         else:
             # get key input
-            self.collision_objects  = {"tiles":tiles, "enemies":enemies}
+            self.collision_objects = {"tiles": tiles, "enemies": enemies}
             self.get_input()
             self.combat(enemies)
             if self.actions["attacked"]:
@@ -204,12 +204,12 @@ class Player(Sprite):
 
 
 class Enemy(Sprite):
-    def __init__(self, pos, image_path=None, dimension=(64, 64), id=None):
+    def __init__(self, pos, image_path=None, dimension=(64, 64), entity_id=None):
         super().__init__(pos)
         self.image_path = image_path
         self.rect = pygame.Rect(pos[0], pos[1], dimension[0], dimension[1])
         self.image.fill("red")
-        self.id = id
+        self.id = entity_id
         self.attack_rate = 4
 
     def move(self, dx, dy):
@@ -219,17 +219,17 @@ class Enemy(Sprite):
             self.move_single_axis(0, dy)
 
     def combat(self, player):
-        if player.actions["attacking"] and player.attack_rate %self.attack_rate == 0:
+        if player.actions["attacking"] and player.attack_rate % self.attack_rate == 0:
             print("Enemy attacks back")
             self.attack(player)
             if player.rect.centerx < self.rect.centerx:
                 player.push("left", "None")
             elif player.rect.centerx > self.rect.centerx:
-                player.push("right","None")
+                player.push("right", "None")
             if player.rect.centery < self.rect.centery:
                 player.push("None", "up")
             elif player.rect.centery < self.rect.centery:
-                player.push("None","down")
+                player.push("None", "down")
             player.actions["attacked"] = True
             player.actions["attacking"] = False
             player.actions["idle"] = True
