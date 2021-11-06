@@ -13,6 +13,7 @@ class World:
         self.enemies = pygame.sprite.Group()
         self.display_surface = surface
         self.world_shift = pygame.math.Vector2(0, 0)
+        self.count = 0
         # add tiles to tile sprite group
         # add player sprite to it's single sprite group
         # x and y placement is the ([r][c]) column index of a tile from the data multiplied by tile size
@@ -81,7 +82,7 @@ class World:
                     player_sprite = Player((x_placement, y_placement))
                     self.player.add(player_sprite)
                 elif placeholder == 'E':
-                    enemy_sprite = Enemy((x_placement, y_placement))
+                    enemy_sprite = Enemy((x_placement, y_placement), entity_id='01')
                     self.enemies.add(enemy_sprite)
 
     # noinspection DuplicatedCode,PyUnresolvedReferences
@@ -122,19 +123,38 @@ class World:
             player.velocity.y = tracker.get_speed()
 
     def run(self):
+        # for debugging, displays tile rectangles with 2px width
+        if debugging:
+            pygame.draw.rect(self.display_surface, "red", self.player.sprite.hitbox, 2)
+            pygame.draw.rect(self.display_surface, "green", self.player.sprite.rect, 2)
+            pygame.draw.rect(self.display_surface, "blue", self.player.sprite.weapon_rect, 2)
         # update gets the input then moves the player's rectangle
         self.scroll_x()
         self.scroll_y()
         self.player.update(self.tiles, self.enemies)
-        self.tiles.update(self.world_shift)
-        self.enemies.update(self.world_shift, self.player.sprite)
 
+        self.tiles.update(self.world_shift)
+        self.enemies.update(self.world_shift, self.player.sprite, self.tiles)
         # pygame sprite class has built in draw method
         # only needs a display surface arguement
         self.tiles.draw(self.display_surface)
-        self.enemies.draw(self.display_surface)
-        self.player.draw(self.display_surface)
-
-        # for debugging, displays tile rectangles with 2px width
         for tile in self.tiles.sprites():
             pygame.draw.rect(self.display_surface, 'white', tile.rect, 2)
+
+        self.enemies.draw(self.display_surface)
+ 
+        self.count = (self.count+1)%120
+        
+        for enemy in self.enemies:
+            r = enemy.radius*(self.count/120)
+            pygame.draw.circle(self.display_surface, 'white', enemy.range.center, r,2)
+            pygame.draw.circle(self.display_surface, 'grey', enemy.range.center, enemy.radius - r//2,2)
+
+            pygame.draw.line(self.display_surface,'red',enemy.rect.center,enemy.target, 2)
+            pygame.draw.circle(self.display_surface,"orange",enemy.target,10)
+        self.player.draw(self.display_surface)
+        self.player.sprite.draw_weapon(self.display_surface)
+
+
+
+
