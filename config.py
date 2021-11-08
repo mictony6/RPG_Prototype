@@ -1,3 +1,4 @@
+import random
 world_data = [
 
     '                         ',
@@ -59,7 +60,6 @@ class Tracker:
 
 tracker = Tracker(p_speed)
 
-import random
 
 prob = []
 tile_prob = 30
@@ -77,7 +77,7 @@ debugging = 0
 use_procedural = 0
 world_width = 24
 world_height = 24
-#procedural generation
+# procedural generation
 if debugging or use_procedural:
     world_data = []
     while len(world_data) < world_height:
@@ -89,6 +89,5 @@ if debugging or use_procedural:
                 world_data[0] = str(world_data[0]) + "P"
                 continue
             else:
-                world_data[len(world_data) - 1] = str(world_data[len(world_data) - 1]) + rep
-
-
+                world_data[len(world_data) -
+                           1] = str(world_data[len(world_data) - 1]) + rep

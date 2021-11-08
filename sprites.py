@@ -25,8 +25,10 @@ class Sprite(pygame.sprite.Sprite):
         self.collide_l = False
         self.collide_t = False
         self.collide_b = False
-        self.scrolled = {"up": False, "down": False, "left": False, "right": False}
-        self.actions = {"idle": True, "attacking": False, "run": False, "attacked": False, "stagger": False}
+        self.scrolled = {"up": False, "down": False,
+                         "left": False, "right": False}
+        self.actions = {"idle": True, "attacking": False,
+                        "run": False, "attacked": False, "stagger": False}
         self.facing_right = True
         self.facing_left = False
         self.facing_up = False
@@ -120,8 +122,10 @@ class Player(Sprite):
                                   dimension[1] - dimension[1] * 2 / 3)
         self.rect = self.image.get_rect(topleft=(pos[0], pos[1]))
         self.rect.bottom = self.hitbox.bottom + 4
-        self.weapon_image = pygame.image.load("./data/sword_0.png").convert_alpha()
-        self.weapon_image = pygame.transform.scale(self.weapon_image, (40 * 2, 12 * 2))
+        self.weapon_image = pygame.image.load(
+            "./data/sword_0.png").convert_alpha()
+        self.weapon_image = pygame.transform.scale(
+            self.weapon_image, (40 * 2, 12 * 2))
         self.weapon_rect = self.weapon_image.get_rect(center=self.rect.center)
         # self.weapon_states = {"idle":pygame.transform.rotate(self.weapon_image,90),"attacking":self.weapon_image}
         self.weapon_animation = [
@@ -130,7 +134,8 @@ class Player(Sprite):
             pygame.image.load("./data/sword_2.png").convert_alpha()
         ]
         for i, image in enumerate(self.weapon_animation):
-            self.weapon_animation[i] = pygame.transform.scale(image, (40 * 2, 12 * 2))
+            self.weapon_animation[i] = pygame.transform.scale(
+                image, (40 * 2, 12 * 2))
 
         # self.image.fill('green')
 
@@ -213,7 +218,8 @@ class Player(Sprite):
         else:
             self.weapon_rect.right = self.rect.left + self.rect.w / 3
             image = pygame.transform.flip(image, True, False)
-            self.weapon_image = pygame.transform.flip(self.weapon_animation[1], True, False)
+            self.weapon_image = pygame.transform.flip(
+                self.weapon_animation[1], True, False)
 
         if self.actions["attacking"]:
             self.weapon_image = image
@@ -243,7 +249,6 @@ class Player(Sprite):
                 self.found = True
 
 
-
 # ------------------------------------------
 # -----------------------------------------------------------------------------------------------
 class Enemy(Sprite):
@@ -260,7 +265,8 @@ class Enemy(Sprite):
         self.reached_target = False
         self.current_position = self.rect.center
         self.target = (
-            random.randrange(self.range.left, self.range.right), random.randrange(self.range.top, self.range.bottom)
+            random.randrange(self.range.left, self.range.right), random.randrange(
+                self.range.top, self.range.bottom)
         )
         self.last_found_areas = []
 
@@ -373,7 +379,7 @@ class Enemy(Sprite):
 
     def scan(self, target):
         vx = vy = 1
-        if self.patience >0 and (self.collide_t or self.collide_b or self.collide_l or self.collide_r):
+        if self.patience > 0 and (self.collide_t or self.collide_b or self.collide_l or self.collide_r):
             pass
         self.facing_right = self.facing_left = self.facing_down = self.facing_up = False
 
@@ -398,7 +404,6 @@ class Enemy(Sprite):
     def die(self):
         self.kill()
         return self.id
-
 
     def update(self, world_shift, player, tiles, display_surface):
         # use the right update method for a certain enemy type
