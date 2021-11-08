@@ -1,15 +1,15 @@
 world_data = [
 
     '                         ',
-    '   P E                   ',
-    '  XXXXX        XXXXXX    ',
-    '  XXXXX           XXX    ',
-    '        XXXXXX      E    ',
+    '    P            G       ',
+    '       G                 ',
+    '                         ',
+    '        XXXXXX      G    ',
     'XXX     XXXXXXX    XXXXXX',
     'XXXXXX     XXXX     XXXX ',
     '   XXX     XXXX     XXXX ',
-    'X      E   XXXX     XXXX ',
-    'XX    XXX       E   XXXX ',
+    'X          XXXX     XXXX ',
+    'XX    XXX           XXXX ',
     'XXX  XXXXXX   dXXXXXXXXXX',
     'XXX  XXXXXX   XXXXXXXXXXX',
 
@@ -17,11 +17,10 @@ world_data = [
 tile_size = 128
 screen_width = 1280
 screen_height = 720
-p_speed = 1
+p_speed = 2
 p_speed *= 2
-debugging = 0
 frame = 1 / 60  # average
-world_size = (len(world_data[1])*tile_size, len(world_data)*tile_size)
+world_size = (len(world_data[1]) * tile_size, len(world_data) * tile_size)
 i_count = 0
 
 
@@ -55,10 +54,41 @@ class Tracker:
         if old >= 2:
             self.weapon_index = 0
         self.weapon_index += .1
-        return (old)
-
-
-
+        return old
 
 
 tracker = Tracker(p_speed)
+
+import random
+
+prob = []
+tile_prob = 30
+enemy_prob = 5
+player_prob = 1
+for n in range(tile_prob):
+    prob.append("X")
+for n in range(enemy_prob):
+    prob.append("G")
+for n in range(100-(tile_prob+enemy_prob)):
+    prob.append(" ")
+
+# [DEBUGGING]
+debugging = 0
+use_procedural = 0
+world_width = 24
+world_height = 24
+#procedural generation
+if debugging or use_procedural:
+    world_data = []
+    while len(world_data) < world_height:
+        world_data.append("")
+        for i in range(world_width):
+            v = random.randrange(100)
+            rep = prob[v]
+            if len(world_data[0]) == 0:
+                world_data[0] = str(world_data[0]) + "P"
+                continue
+            else:
+                world_data[len(world_data) - 1] = str(world_data[len(world_data) - 1]) + rep
+
+

@@ -3,7 +3,9 @@ from abc import abstractmethod
 from math import sqrt
 
 import pygame as pygame
-from config import tracker, screen_height, screen_width, world_size
+
+from config import tracker
+from sprite_helper import FoundArea, EnemyUpdate
 
 
 class Sprite(pygame.sprite.Sprite):
@@ -18,6 +20,7 @@ class Sprite(pygame.sprite.Sprite):
         self.weapon_rect = None
 
         # collision statuses
+        self.found = False
         self.collide_r = False
         self.collide_l = False
         self.collide_t = False
@@ -26,6 +29,8 @@ class Sprite(pygame.sprite.Sprite):
         self.actions = {"idle": True, "attacking": False, "run": False, "attacked": False, "stagger": False}
         self.facing_right = True
         self.facing_left = False
+        self.facing_up = False
+        self.facing_down = False
 
         # x and y velocity..change in displacement over time
         self.velocity = pygame.math.Vector2(0, 0)
@@ -167,54 +172,10 @@ class Player(Sprite):
             self.rect.y -= tracker.get_speed()
             self.weapon_rect.y -= tracker.get_speed()
 
-    def combat(self, enemy_list):
-        pressed = pygame.key.get_pressed()
-        for enemy in enemy_list:
-            if enemy.rect.colliderect(self.hitbox):
-                if self.direction.x > 0:  # Moving right; Hit the left side of the enemy
-                    self.move(-tracker.get_speed(), 0)
-                if self.direction.x < 0:  # Moving left; Hit the right side of the enemy
-                    self.move(tracker.get_speed(), 0)
-                if self.direction.y > 0:  # Moving down; Hit the top side of the enemy
-                    self.move(0, -tracker.get_speed())
-                if self.direction.y < 0:  # Moving up; Hit the bottom side of the enemy
-                    self.move(0, tracker.get_speed())
-
-                if pressed[pygame.K_e] and self.actions["idle"]:
-                    self.attack(enemy)
-                    print(f"Attacking enemy.\nEnemy health:{enemy.health}")
-                    self.actions["idle"] = False
-                    self.actions["attacking"] = True
-                    if enemy.health <= 0:
-                        print("Enemy is dead!")
-                elif self.actions["attacking"]:
-                    enemy.combat(self)
-                    self.attack_rate -= .75
-            if self.attack_rate <= 0:
-                self.actions["idle"] = True
-                self.actions["attacking"] = False
-                self.attack_rate = 10
-
-    def push(self, directionx, directiony):
-        # directions says where to push player not where player is facing
-        if directionx == "left":
-            self.move(-20, 0)
-        elif directionx == "right":
-            self.move(20, 0)
-        if directiony == "up":
-            self.move(0, -20)
-        elif directiony == "down":
-            self.move(0, 20)
-        self.actions["stagger"] = True
-
     def get_input(self):
         # horizontal movement
         pressed = pygame.key.get_pressed()
         tracker.track("walk", pressed[pygame.K_LSHIFT])
-        if pressed[pygame.K_e]:
-            self.actions["attacking"] = True
-        else:
-            self.actions["attacking"] = False
         if pressed[pygame.K_d]:
             self.image = self.image_facing_right
             self.move(self.velocity.x, 0)
@@ -266,44 +227,49 @@ class Player(Sprite):
         if self.health <= 0:
             self.die()
         else:
-            if self.actions["idle"] and not self.actions["stagger"] and self.health < 100:
+            if self.health < 100:
                 self.health += .15
 
             # get input if player is not staggering
             self.collision_objects = {"tiles": tiles, "enemies": enemies}
-            if not self.actions["stagger"]:
-                self.get_input()
-                self.combat(enemies)
+            self.get_input()
+            enemies_who_found_player = 0
+            for enemy in enemies:
+                if enemy.found_player:
+                    enemies_who_found_player += 1
+            if enemies_who_found_player == 0:
+                self.found = False
             else:
-                self.attack_rate -= .5
-                if self.attack_rate <= 0:
-                    self.actions["stagger"] = False
+                self.found = True
 
-            if self.actions["attacked"]:
-                print(f"Your Health: {self.health}")
-                self.actions["attacked"] = False
 
 
 # ------------------------------------------
 # -----------------------------------------------------------------------------------------------
 class Enemy(Sprite):
-    def __init__(self, pos, image_path=None, dimension=(64, 64), entity_id=None):
+    def __init__(self, pos, dimension=(64, 64), entity_id=None):
         super().__init__(pos)
-        self.count_trails = 0
-        self.image_path = image_path
+        self.found_player = False
         self.rect = pygame.Rect(pos[0], pos[1], dimension[0], dimension[1])
         self.hitbox = self.rect
-        self.range = self.rect.copy().inflate(128*4, 128*4)
-        self.radius = self.range.w//2
-        self.patience = 60*5
+
+        # enemy fields for scanning area
+        self.range = self.rect.copy().inflate(128 * 4, 128 * 4)
+        self.radius = self.range.w // 2
+        self.patience = 60 * 5
         self.reached_target = False
         self.current_position = self.rect.center
-        self.target = (random.randrange(self.range.left, self.range.right), random.randrange(self.range.top, self.range.bottom))
+        self.target = (
+            random.randrange(self.range.left, self.range.right), random.randrange(self.range.top, self.range.bottom)
+        )
+        self.last_found_areas = []
 
-        self.image.fill("lightblue")
         self.id = entity_id
         self.attack_rate = 5
         self.type = {"01": "base enemy"}
+        self.power = .5
+
+        self.helper = EnemyUpdate()
 
     def move(self, dx, dy):
         if dx != 0:
@@ -340,6 +306,7 @@ class Enemy(Sprite):
 
         if move_rect:
             self.range.center = self.rect.center
+            self.hitbox.center = self.rect.center
 
         # set everything to false if there was no collision
         # cause we only flick them on individually everytime a collision occur
@@ -347,91 +314,93 @@ class Enemy(Sprite):
         if count == len(self.collision_objects["tiles"].sprites()):
             self.collide_r = self.collide_l = self.collide_t = self.collide_b = False
 
-    def combat(self, player):
-        if player.actions["attacking"] and player.attack_rate % self.attack_rate == 0:
-            print("Enemy attacks back")
-            self.attack(player)
-            if player.direction.x > 0:
-                player.push("left", "None")
-            elif player.direction.x < 0:
-                player.push("right", "None")
-            if player.direction.y > 0:
-                player.push("None", "up")
-            elif player.direction.y < 0:
-                player.push("None", "down")
-            player.actions["attacked"] = True
+    def already_searched(self):
+        clear = 0
+        for area in self.last_found_areas:
+            # if area is clear, increment
+            if area.check(self.target):
+                clear += 1
+        return clear < len(self.last_found_areas)
 
-    def generate_movement(self,player):
-        frame = 1 / 60
-        distance = sqrt((player.hitbox.centerx-self.rect.centerx)**2+(player.hitbox.centery-self.rect.centery)**2)
-        if distance <= self.radius:
+    def generate_movement(self, player):
+
+        distance_from_player = sqrt(
+            (player.hitbox.centerx - self.rect.centerx) ** 2 + (player.hitbox.centery - self.rect.centery) ** 2)
+        self.found_player = False
+        if distance_from_player <= self.radius:
+            if self.facing_right and player.rect.centerx > self.rect.centerx:
                 self.target = player.rect.center
-                self.found_player =  True
-        else:
-            self.found_player = False
-        if self.patience <= 1 and not self.found_player:
-            print('generating new target')
-            self.target = (random.randrange(self.range.left, self.range.right), random.randrange(self.range.top, self.range.bottom))
-            self.patience = 60*5
-            self.current_position = self.rect.center
+                self.found_player = True
+            elif self.facing_left and player.rect.centerx < self.rect.centerx:
+                self.target = player.rect.center
+                self.found_player = True
+            if self.facing_up and player.rect.centery < self.rect.centery:
+                self.target = player.rect.center
+                self.found_player = True
+            elif self.facing_down and player.rect.centery > self.rect.centery:
+                self.target = player.rect.center
+                self.found_player = True
+            else:
+                self.found_player = False
 
-            print(self.current_position,"to",self.target)
+        # if patience is 0, look for another target
+        if self.patience <= 1:
+            current_target = FoundArea(self.target)
+            if len(self.last_found_areas) == 5:
+                self.last_found_areas.pop(0)
+            if not self.found_player:
+                self.last_found_areas.append(current_target)
+            print(self.last_found_areas, self.found_player, self.target)
+
+            self.patience = 60 * 5
+            # but if player is found, keep track of player
+            if not self.found_player:
+                # if picked area is colliding with recent areas, pick again
+                while self.already_searched():
+                    self.target = (random.randrange(self.range.left, self.range.right),
+                                   random.randrange(self.range.top, self.range.bottom))
+                self.current_position = self.rect.center
 
         else:
             self.reached_target = False
             self.current_position = self.rect.center
-            self.patience -= 1
+            if not self.found_player:
+                self.patience -= 1
             self.scan(self.target)
-            if self.current_position == self.rect.center:
+            # if position is same as target
+            if self.current_position == self.target:
                 self.reached_target = True
 
-
-
-
     def scan(self, target):
-        if self.reached_target:
-            vx =vx = 0
-        else:
-            vx = vy =1
+        vx = vy = 1
+        if self.patience >0 and (self.collide_t or self.collide_b or self.collide_l or self.collide_r):
+            pass
+        self.facing_right = self.facing_left = self.facing_down = self.facing_up = False
 
-        # print(dist, v)
         if self.range.centerx < target[0]:
+            self.facing_right = True
+            self.facing_left = False
             self.move(vx, 0)
-
         elif self.range.centerx > target[0]:
             self.move(-vx, 0)
-
-        if self.collide_r or self.collide_l:
-
-            if self.rect.centery < target[1]:
-                self.move(0, 1)
-            elif self.rect.centery < target[1]:
-                self.move(0, -1)
+            self.facing_left = True
+            self.facing_right = False
 
         if self.range.centery > target[1]:
+            self.facing_up = True
+            self.facing_down = False
             self.move(0, -vy)
         elif self.range.centery < target[1]:
             self.move(0, vy)
-        if self.collide_t or self.collide_b:
-            if self.rect.centerx < target[0]:
-                self.move(1,0)
-            elif self.rect.centerx < target[0] :
-                self.move(-1,0)
+            self.facing_down = True
+            self.facing_up = False
 
     def die(self):
         self.kill()
         return self.id
 
-    def update(self, world_shift, player, tiles):
-        self.collision_objects = {"tiles": tiles, "enemies": player}
-        if self.health <= 0:
-            print("You killed a", self.type[self.die()])
-            player.attack_rate = 10
-            player.actions["idle"] = True
-            player.actions["attacking"] = False
-        else:
-            # self.combat(player)
-            self.rect.center += world_shift
-            self.target = (self.target[0]+world_shift[0],self.target[1]+world_shift[1])
-            self.range.center+= world_shift
-            self.generate_movement(player)
+
+    def update(self, world_shift, player, tiles, display_surface):
+        # use the right update method for a certain enemy type
+
+        self.helper.update(self, world_shift, player, tiles)
