@@ -2,10 +2,10 @@ import random
 world_data = [
 
     '                         ',
-    '    P            G       ',
+    '    P                    ',
     '       G                 ',
     '                         ',
-    '        XXXXXX      G    ',
+    '        XXXXXX           ',
     'XXX     XXXXXXX    XXXXXX',
     'XXXXXX     XXXX     XXXX ',
     '   XXX     XXXX     XXXX ',

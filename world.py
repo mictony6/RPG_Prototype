@@ -144,9 +144,9 @@ class World:
         # only needs a display surface arguement
 
         self.count = (self.count + 1) % 120
-        font = pygame.font.SysFont("SegoeUiVariable", 12)
-        text_surf = font.render("AREA IS CLEAR", True, 'white')
-        txt_rect = text_surf.get_rect()
+        # font = pygame.font.SysFont("SegoeUiVariable", 12)
+        # text_surf = font.render("AREA IS CLEAR", True, 'white')
+        # txt_rect = text_surf.get_rect()
         self.tiles.draw(self.display_surface)
         for tile in self.tiles.sprites():
             pygame.draw.rect(self.display_surface, 'white', tile.rect, 2)
@@ -156,10 +156,10 @@ class World:
             r = enemy.radius * (self.count / 120)
             pygame.draw.circle(self.display_surface, 'darkgreen', enemy.range.center, r, 2)
             pygame.draw.circle(self.display_surface, 'pink', enemy.range.center, enemy.radius - r // 2, 2)
-            for targets in enemy.last_found_areas:
-                txt_rect.center = targets.coordinates
-                pygame.draw.circle(self.display_surface,"white",targets.coordinates, 128/2, 4)
-                self.display_surface.blit(text_surf, txt_rect.topleft)
+            # for targets in enemy.last_found_areas:
+            #     txt_rect.center = targets.coordinates
+            #     pygame.draw.circle(self.display_surface,"white",targets.coordinates, 128/2, 4)
+            #     self.display_surface.blit(text_surf, txt_rect.topleft)
 
             if debugging:
                 pygame.draw.rect(self.display_surface,"orange", enemy.range, 1)

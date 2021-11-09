@@ -8,7 +8,6 @@ pygame.init()
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((screen_width, screen_height))
 world = World(screen, world_data)
-pygame.key.set_repeat(1, 1000)
 
 
 def main():
